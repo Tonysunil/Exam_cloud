@@ -16,7 +16,7 @@ export default function Header({ view, setView, paperCount, session }: HeaderPro
         <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-400 via-green-400 to-yellow-400 flex items-center justify-center shadow-lg">
           <BookOpen className="w-4 h-4 text-white" />
         </div>
-        <span className="text-xl font-serif font-bold tracking-wide text-white">ExamVault</span>
+        <span className="text-xl font-serif font-bold tracking-wide text-white">ExamCloud</span>
       </div>
 
       <div className="flex bg-[#1e293b] rounded-lg p-1 order-3 w-full sm:w-auto sm:order-2 justify-center">

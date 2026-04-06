@@ -79,8 +79,8 @@ export default function StudentView({ papers }: StudentViewProps) {
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-4 leading-tight">
-            Ace Your Exams with <br />
-            <span className="text-brand-yellow">Past Question Papers</span>
+            Get ready for exams <br />
+            with <span className="text-brand-yellow">past papers.</span>
           </h1>
 
           <p className="text-slate-400 text-lg mb-10 max-w-2xl">
@@ -259,7 +259,7 @@ export default function StudentView({ papers }: StudentViewProps) {
             </div>
             
             {/* Modal Body */}
-            <div className="flex-grow bg-slate-100 p-4">
+            <div className="flex-grow bg-slate-100 p-2 md:p-4 overflow-hidden">
               {previewPaper.url === '#' ? (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-white rounded-lg border border-slate-300">
                   <FileText className="w-16 h-16 mb-4 text-slate-300" />
@@ -271,33 +271,57 @@ export default function StudentView({ papers }: StudentViewProps) {
                   <FileText className="w-16 h-16 mb-4 text-slate-300" />
                   <p className="text-lg font-medium text-slate-700 mb-2">Preview Not Available</p>
                   <p className="mb-6">Preview is only available for PDF files. Please download the file to view it.</p>
-                  <button 
-                    onClick={(e) => handleDownload(e, previewPaper.url, previewPaper.fileName)}
-                    className="px-6 py-2.5 bg-brand-yellow text-slate-900 rounded-lg font-medium hover:bg-yellow-400 transition-colors flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download File
-                  </button>
-                </div>
-              ) : (
-                <object
-                  data={previewPaper.url}
-                  type="application/pdf"
-                  className="w-full h-full rounded-lg border border-slate-300 shadow-sm bg-white"
-                >
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-white rounded-lg border border-slate-300 p-6 text-center">
-                    <FileText className="w-16 h-16 mb-4 text-slate-300" />
-                    <p className="text-lg font-medium text-slate-700 mb-2">Unable to display PDF</p>
-                    <p className="mb-6">Your browser may not support inline PDF viewing.</p>
+                  <div className="flex flex-wrap gap-3 justify-center">
                     <button 
                       onClick={(e) => handleDownload(e, previewPaper.url, previewPaper.fileName)}
                       className="px-6 py-2.5 bg-brand-yellow text-slate-900 rounded-lg font-medium hover:bg-yellow-400 transition-colors flex items-center gap-2"
                     >
                       <Download className="w-4 h-4" />
-                      Download PDF Instead
+                      Download File
                     </button>
+                    <a 
+                      href={previewPaper.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Open in New Tab
+                    </a>
                   </div>
-                </object>
+                </div>
+              ) : (
+                <div className="w-full h-full relative group">
+                  <iframe
+                    src={`${previewPaper.url}#toolbar=0`}
+                    title="PDF Preview"
+                    className="w-full h-full rounded-lg border border-slate-300 shadow-sm bg-white"
+                  />
+                  {/* Fallback overlay for mobile or browsers that block inline PDFs */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none sm:hidden">
+                    <p className="text-slate-600 font-medium mb-2">Having trouble viewing?</p>
+                    <a 
+                      href={previewPaper.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pointer-events-auto px-4 py-2 bg-brand-yellow text-slate-900 rounded-lg text-sm font-medium hover:bg-yellow-400 transition-colors"
+                    >
+                      Open in New Tab
+                    </a>
+                  </div>
+                  {/* Desktop "Open in New Tab" floating button */}
+                  <div className="absolute bottom-4 right-4 hidden sm:block">
+                    <a 
+                      href={previewPaper.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-white/90 backdrop-blur-sm border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold shadow-lg hover:bg-white transition-all flex items-center gap-2"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Open Full View
+                    </a>
+                  </div>
+                </div>
               )}
             </div>
           </div>
