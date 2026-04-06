@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, FileText, Download, BookOpen, Eye, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, FileText, Download, BookOpen, Eye, X, Tag as TagIcon } from 'lucide-react';
 import { Paper } from '../types';
 
 interface StudentViewProps {
@@ -10,15 +10,60 @@ export default function StudentView({ papers }: StudentViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('All');
   const [selectedYear, setSelectedYear] = useState<string>('All Years');
+  const [selectedSubject, setSelectedSubject] = useState<string>('All Subjects');
   const [previewPaper, setPreviewPaper] = useState<Paper | null>(null);
 
-  const filteredPapers = papers.filter(paper => {
-    const matchesSearch = paper.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          paper.branch.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === 'All' || paper.type === selectedType;
-    const matchesYear = selectedYear === 'All Years' || paper.year === selectedYear;
-    return matchesSearch && matchesType && matchesYear;
-  });
+  // Get unique years and subjects from papers for the filters
+  const availableYears = ['All Years', ...new Set(papers.map(p => p.year))].sort((a, b) => b.localeCompare(a));
+  const availableSubjects = ['All Subjects', ...new Set(papers.map(p => p.subject))].sort();
+
+  const filteredPapers = React.useMemo(() => {
+    const searchWords = searchTerm.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    
+    return papers.filter(paper => {
+      const matchesType = selectedType === 'All' || paper.type === selectedType;
+      const matchesYear = selectedYear === 'All Years' || paper.year === selectedYear;
+      const matchesSubject = selectedSubject === 'All Subjects' || paper.subject === selectedSubject;
+      
+      if (searchWords.length === 0) return matchesType && matchesYear && matchesSubject;
+
+      const paperContent = [
+        paper.subject,
+        paper.branch,
+        paper.year,
+        paper.semester,
+        paper.type,
+        ...(paper.tags || [])
+      ].join(' ').toLowerCase();
+
+      const matchesSearch = searchWords.every(word => paperContent.includes(word));
+      
+      return matchesSearch && matchesType && matchesYear && matchesSubject;
+    });
+  }, [papers, searchTerm, selectedType, selectedYear, selectedSubject]);
+
+  const handleDownload = (e: React.MouseEvent, url: string, fileName?: string) => {
+    if (url === '#') {
+      e.preventDefault();
+      return;
+    }
+    
+    // For Supabase storage URLs, we can append ?download= to force download
+    // This is more reliable than just target="_blank"
+    if (url.includes('supabase.co/storage')) {
+      e.preventDefault();
+      const downloadUrl = url.includes('?') 
+        ? `${url}&download=${fileName || ''}` 
+        : `${url}?download=${fileName || ''}`;
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', fileName || 'paper.pdf');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   return (
     <div className="flex-grow flex flex-col">
@@ -44,7 +89,7 @@ export default function StudentView({ papers }: StudentViewProps) {
 
           <div className="flex flex-col md:flex-row gap-4 max-w-3xl">
             <div className="flex-grow relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-yellow" />
               <input
                 type="text"
                 placeholder="Search subject, branch, year..."
@@ -58,10 +103,9 @@ export default function StudentView({ papers }: StudentViewProps) {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="bg-[#1e293b]/80 backdrop-blur-sm border border-slate-700 rounded-lg py-3.5 px-4 text-white focus:outline-none focus:border-brand-yellow transition-colors appearance-none min-w-[160px] cursor-pointer"
             >
-              <option>All Years</option>
-              <option>2024</option>
-              <option>2023</option>
-              <option>2022</option>
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -90,8 +134,14 @@ export default function StudentView({ papers }: StudentViewProps) {
               ))}
             </div>
           </div>
-          <select className="bg-white border border-slate-300 rounded-md py-2 px-4 text-sm text-slate-700 focus:outline-none focus:border-brand-yellow cursor-pointer">
-            <option>All Subjects</option>
+          <select 
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+            className="bg-white border border-slate-300 rounded-md py-2 px-4 text-sm text-slate-700 focus:outline-none focus:border-brand-yellow cursor-pointer"
+          >
+            {availableSubjects.map(subject => (
+              <option key={subject} value={subject}>{subject}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -117,7 +167,19 @@ export default function StudentView({ papers }: StudentViewProps) {
                     <span className="text-slate-400 text-sm font-medium bg-slate-50 px-2 py-1 rounded">{paper.year}</span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2 line-clamp-2">{paper.subject}</h3>
-                  <p className="text-slate-500 text-sm mb-6 flex-grow">{paper.branch} • {paper.semester} Semester</p>
+                  <p className="text-slate-500 text-sm mb-4">{paper.branch} • {paper.semester} Semester</p>
+                  
+                  {paper.tags && paper.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-6">
+                      {paper.tags.map(tag => (
+                        <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-medium rounded-md border border-slate-200">
+                          <TagIcon className="w-2.5 h-2.5" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  
                   <div className="flex gap-2 mt-auto">
                     <button
                       onClick={() => setPreviewPaper(paper)}
@@ -126,15 +188,13 @@ export default function StudentView({ papers }: StudentViewProps) {
                       <Eye className="w-4 h-4" />
                       Preview
                     </button>
-                    <a 
-                      href={paper.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={(e) => handleDownload(e, paper.url, paper.fileName)}
                       className="flex-1 py-2.5 rounded-lg bg-brand-yellow text-slate-900 font-medium text-sm flex items-center justify-center gap-2 hover:bg-yellow-400 transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       Download
-                    </a>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -143,7 +203,18 @@ export default function StudentView({ papers }: StudentViewProps) {
             <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 border-dashed">
               <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-slate-900 mb-1">No papers found</h3>
-              <p className="text-slate-500">Try adjusting your search or filters.</p>
+              <p className="text-slate-500 mb-6">Try adjusting your search or filters.</p>
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedType('All');
+                  setSelectedYear('All Years');
+                  setSelectedSubject('All Subjects');
+                }}
+                className="px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Clear all filters
+              </button>
             </div>
           )}
         </div>
@@ -157,18 +228,27 @@ export default function StudentView({ papers }: StudentViewProps) {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 bg-slate-50 gap-4">
               <div className="w-full sm:w-auto pr-8 sm:pr-0">
                 <h3 className="text-xl font-bold text-slate-900 line-clamp-1">{previewPaper.subject}</h3>
-                <p className="text-sm text-slate-500">{previewPaper.year} • {previewPaper.type} • {previewPaper.branch}</p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <p className="text-sm text-slate-500">{previewPaper.year} • {previewPaper.type} • {previewPaper.branch}</p>
+                  {previewPaper.tags && previewPaper.tags.length > 0 && (
+                    <div className="flex gap-1.5 ml-2">
+                      {previewPaper.tags.map(tag => (
+                        <span key={tag} className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] rounded border border-slate-300">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <a
-                  href={previewPaper.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={(e) => handleDownload(e, previewPaper.url, previewPaper.fileName)}
                   className="flex-1 sm:flex-none justify-center px-4 py-2 bg-brand-yellow text-slate-900 rounded-lg text-sm font-medium hover:bg-yellow-400 transition-colors flex items-center gap-2"
                 >
                   <Download className="w-4 h-4" />
                   Download
-                </a>
+                </button>
                 <button
                   onClick={() => setPreviewPaper(null)}
                   className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors absolute top-3 right-3 sm:static"
@@ -191,15 +271,13 @@ export default function StudentView({ papers }: StudentViewProps) {
                   <FileText className="w-16 h-16 mb-4 text-slate-300" />
                   <p className="text-lg font-medium text-slate-700 mb-2">Preview Not Available</p>
                   <p className="mb-6">Preview is only available for PDF files. Please download the file to view it.</p>
-                  <a 
-                    href={previewPaper.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button 
+                    onClick={(e) => handleDownload(e, previewPaper.url, previewPaper.fileName)}
                     className="px-6 py-2.5 bg-brand-yellow text-slate-900 rounded-lg font-medium hover:bg-yellow-400 transition-colors flex items-center gap-2"
                   >
                     <Download className="w-4 h-4" />
                     Download File
-                  </a>
+                  </button>
                 </div>
               ) : (
                 <object
@@ -211,15 +289,13 @@ export default function StudentView({ papers }: StudentViewProps) {
                     <FileText className="w-16 h-16 mb-4 text-slate-300" />
                     <p className="text-lg font-medium text-slate-700 mb-2">Unable to display PDF</p>
                     <p className="mb-6">Your browser may not support inline PDF viewing.</p>
-                    <a 
-                      href={previewPaper.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <button 
+                      onClick={(e) => handleDownload(e, previewPaper.url, previewPaper.fileName)}
                       className="px-6 py-2.5 bg-brand-yellow text-slate-900 rounded-lg font-medium hover:bg-yellow-400 transition-colors flex items-center gap-2"
                     >
                       <Download className="w-4 h-4" />
                       Download PDF Instead
-                    </a>
+                    </button>
                   </div>
                 </object>
               )}

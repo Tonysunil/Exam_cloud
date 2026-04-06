@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { UploadCloud, FileText, X, Edit2, Trash2, Loader2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { UploadCloud, FileText, X, Edit2, Trash2, Loader2, Tag, Search } from 'lucide-react';
 import { Paper } from '../types';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -18,12 +18,64 @@ export default function AdminView({ papers, onAddPaper, onDeletePaper, onEditPap
     type: 'Mid-Term',
     branch: '',
     semester: '1st',
+    tags: [] as string[],
   });
+  const [tagInput, setTagInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [paperToDelete, setPaperToDelete] = useState<string | null>(null);
   const [editingPaper, setEditingPaper] = useState<Paper | null>(null);
+  const [editTagInput, setEditTagInput] = useState('');
+  const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredPapers = React.useMemo(() => {
+    const searchWords = adminSearchTerm.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (searchWords.length === 0) return papers;
+
+    return papers.filter(paper => {
+      const paperContent = [
+        paper.subject,
+        paper.branch,
+        paper.year,
+        paper.semester,
+        paper.type,
+        ...(paper.tags || [])
+      ].join(' ').toLowerCase();
+      return searchWords.every(word => paperContent.includes(word));
+    });
+  }, [papers, adminSearchTerm]);
+
+  const handleAddTag = (e: React.KeyboardEvent | React.MouseEvent, isEdit: boolean) => {
+    if (e.type === 'keypress' && (e as React.KeyboardEvent).key !== 'Enter') return;
+    if (e.type === 'keypress') e.preventDefault();
+
+    const input = isEdit ? editTagInput : tagInput;
+    const setInput = isEdit ? setEditTagInput : setTagInput;
+    const currentPaper = isEdit ? editingPaper : formData;
+    const setPaper = isEdit ? (val: any) => setEditingPaper(val) : (val: any) => setFormData(val);
+
+    if (input.trim() && currentPaper) {
+      const newTag = input.trim().toLowerCase();
+      const currentTags = currentPaper.tags || [];
+      if (!currentTags.includes(newTag)) {
+        setPaper({ ...currentPaper, tags: [...currentTags, newTag] });
+      }
+      setInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string, isEdit: boolean) => {
+    const currentPaper = isEdit ? editingPaper : formData;
+    const setPaper = isEdit ? (val: any) => setEditingPaper(val) : (val: any) => setFormData(val);
+
+    if (currentPaper) {
+      setPaper({
+        ...currentPaper,
+        tags: (currentPaper.tags || []).filter(t => t !== tagToRemove)
+      });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -77,6 +129,7 @@ export default function AdminView({ papers, onAddPaper, onDeletePaper, onEditPap
         type: 'Mid-Term',
         branch: '',
         semester: '1st',
+        tags: [],
       });
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -215,6 +268,40 @@ export default function AdminView({ papers, onAddPaper, onDeletePaper, onEditPap
                 <option value="8th">8th Semester</option>
               </select>
             </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 tracking-wider mb-2">TAGS / KEYWORDS</label>
+              <div className="flex gap-2 mb-3">
+                <div className="relative flex-grow">
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Add tags (e.g. calculus, unit1)"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyPress={(e) => handleAddTag(e, false)}
+                    className="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-yellow transition-colors"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => handleAddTag(e, false)}
+                  className="px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map(tag => (
+                  <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-yellow/10 border border-brand-yellow/30 text-brand-yellow text-xs rounded-full">
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag, false)} className="hover:text-white">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           <button
@@ -238,16 +325,28 @@ export default function AdminView({ papers, onAddPaper, onDeletePaper, onEditPap
 
         {/* Existing Papers List */}
         <div className="mt-16">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <h2 className="text-2xl font-serif font-bold text-white">Manage Papers</h2>
-            <div className="px-3 py-1 bg-[#1e293b] rounded-full text-sm text-slate-400">
-              {papers.length} Total
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="relative flex-grow sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-yellow" />
+                <input
+                  type="text"
+                  placeholder="Search papers..."
+                  value={adminSearchTerm}
+                  onChange={(e) => setAdminSearchTerm(e.target.value)}
+                  className="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-brand-yellow transition-colors"
+                />
+              </div>
+              <div className="px-3 py-1 bg-[#1e293b] rounded-full text-sm text-slate-400 whitespace-nowrap">
+                {filteredPapers.length} of {papers.length}
+              </div>
             </div>
           </div>
 
-          {papers.length > 0 ? (
+          {filteredPapers.length > 0 ? (
             <div className="space-y-4">
-              {papers.map((paper) => (
+              {filteredPapers.map((paper) => (
                 <div key={paper.id} className="bg-[#1e293b] border border-slate-700 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-500 transition-colors">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0">
@@ -264,6 +363,15 @@ export default function AdminView({ papers, onAddPaper, onDeletePaper, onEditPap
                         <span>•</span>
                         <span>{paper.semester} Sem</span>
                       </div>
+                      {paper.tags && paper.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {paper.tags.map(tag => (
+                            <span key={tag} className="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-500 text-[10px] rounded">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -342,11 +450,12 @@ export default function AdminView({ papers, onAddPaper, onDeletePaper, onEditPap
                   year: editingPaper.year,
                   type: editingPaper.type,
                   branch: editingPaper.branch,
-                  semester: editingPaper.semester
+                  semester: editingPaper.semester,
+                  tags: editingPaper.tags
                 });
                 setEditingPaper(null);
               }}
-              className="space-y-4"
+              className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar"
             >
               <div>
                 <label className="block text-xs font-bold text-slate-400 tracking-wider mb-2">SUBJECT NAME</label>
@@ -409,6 +518,37 @@ export default function AdminView({ papers, onAddPaper, onDeletePaper, onEditPap
                   <option value="7th">7th Semester</option>
                   <option value="8th">8th Semester</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 tracking-wider mb-2">TAGS</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="Add tag..."
+                    value={editTagInput}
+                    onChange={(e) => setEditTagInput(e.target.value)}
+                    onKeyPress={(e) => handleAddTag(e, true)}
+                    className="flex-grow bg-[#0f172a] border border-slate-700 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-brand-yellow"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => handleAddTag(e, true)}
+                    className="px-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(editingPaper.tags || []).map(tag => (
+                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-yellow/10 border border-brand-yellow/30 text-brand-yellow text-[10px] rounded">
+                      {tag}
+                      <button type="button" onClick={() => removeTag(tag, true)} className="hover:text-white">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-8">

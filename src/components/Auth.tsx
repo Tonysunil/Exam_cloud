@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
