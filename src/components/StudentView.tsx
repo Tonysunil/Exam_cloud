@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, FileText, Download, BookOpen, Eye, X, Tag as TagIcon } from 'lucide-react';
+import { Search, FileText, Download, BookOpen, Eye, X } from 'lucide-react';
 import { Paper } from '../types';
 
 interface StudentViewProps {
@@ -33,7 +33,6 @@ export default function StudentView({ papers }: StudentViewProps) {
         paper.year,
         paper.semester,
         paper.type,
-        ...(paper.tags || [])
       ].join(' ').toLowerCase();
 
       const matchesSearch = searchWords.every(word => paperContent.includes(word));
@@ -167,18 +166,7 @@ export default function StudentView({ papers }: StudentViewProps) {
                     <span className="text-slate-400 text-sm font-medium bg-slate-50 px-2 py-1 rounded">{paper.year}</span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2 line-clamp-2">{paper.subject}</h3>
-                  <p className="text-slate-500 text-sm mb-4">{paper.branch} • {paper.semester} Semester</p>
-                  
-                  {paper.tags && paper.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-6">
-                      {paper.tags.map(tag => (
-                        <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-medium rounded-md border border-slate-200">
-                          <TagIcon className="w-2.5 h-2.5" />
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <p className="text-slate-500 text-sm mb-6">{paper.branch} • {paper.semester} Semester</p>
                   
                   <div className="flex gap-2 mt-auto">
                     <button
@@ -230,15 +218,6 @@ export default function StudentView({ papers }: StudentViewProps) {
                 <h3 className="text-xl font-bold text-slate-900 line-clamp-1">{previewPaper.subject}</h3>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   <p className="text-sm text-slate-500">{previewPaper.year} • {previewPaper.type} • {previewPaper.branch}</p>
-                  {previewPaper.tags && previewPaper.tags.length > 0 && (
-                    <div className="flex gap-1.5 ml-2">
-                      {previewPaper.tags.map(tag => (
-                        <span key={tag} className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] rounded border border-slate-300">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto">

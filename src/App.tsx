@@ -51,7 +51,6 @@ export default function App() {
         semester: p.semester,
         url: p.url,
         fileName: p.fileName,
-        tags: p.tags || [],
         createdAt: p.created_at
       }));
       setPapers(formattedPapers);
@@ -70,7 +69,6 @@ export default function App() {
         semester: paper.semester,
         url: paper.url,
         fileName: paper.fileName,
-        tags: paper.tags || []
       }])
       .select();
 
@@ -87,7 +85,6 @@ export default function App() {
         semester: data[0].semester,
         url: data[0].url,
         fileName: data[0].fileName,
-        tags: data[0].tags || [],
         createdAt: data[0].created_at
       };
       setPapers([newPaper, ...papers]);
@@ -114,7 +111,6 @@ export default function App() {
       type: updates.type,
       branch: updates.branch,
       semester: updates.semester,
-      tags: updates.tags
     }).eq('id', id);
 
     if (error) {

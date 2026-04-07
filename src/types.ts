@@ -7,6 +7,5 @@ export interface Paper {
   semester: string;
   url: string;
   fileName?: string;
-  tags?: string[];
   createdAt: string;
 }
